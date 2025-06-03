@@ -19,6 +19,8 @@ import streamlit.components.v1 as stc
 from order_streamlit import Record
 import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.rcParams['font.sans-serif'] = ['Microsoft JhengHei']  # 或 ['SimHei'], ['Taipei Sans TC Beta']
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 #%%
 ####### (1) 開始設定 #######
@@ -709,15 +711,17 @@ elif choice_strategy == choices_strategies[3]:
                     OrderRecord.Cover('Buy', KBar_df['product'][n+1], KBar_df['time'][n+1], KBar_df['open'][n+1], -OrderRecord.GetOpenInterest())
 
 def ChartOrder_RSI(df, trade_record):
+    if len(trade_record) == 0:
+        st.write('⚠️ 沒有任何交易紀錄，無法繪圖')
+        return
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), sharex=True)
 
-    # 主圖：價格線
     ax1.plot(df['time'], df['close'], label='收盤價', color='black')
     ax1.set_title('RSI 策略 K 線與下單點位')
     ax1.set_ylabel('價格')
     ax1.grid(True)
 
-    # RSI 指標
     ax2.plot(df['time'], df['RSI_short'], label='RSI', color='blue')
     ax2.axhline(70, color='red', linestyle='--', label='Overbought (70)')
     ax2.axhline(30, color='green', linestyle='--', label='Oversold (30)')
@@ -725,31 +729,39 @@ def ChartOrder_RSI(df, trade_record):
     ax2.set_xlabel('時間')
     ax2.grid(True)
 
-    # 畫下單點
     for trade in trade_record:
-        entry_time = trade['EntryTime']
-        entry_price = trade['EntryPrice']
-        exit_time = trade['ExitTime']
-        exit_price = trade['ExitPrice']
-        qty = trade['Quantity']
-        if qty > 0:
-            ax1.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
-                         arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
-            ax1.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
-                         arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
-        else:
-            ax1.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
-                         arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
-            ax1.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
-                         arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+        if isinstance(trade, dict):  # 確保是字典
+            entry_time = trade['EntryTime']
+            entry_price = trade['EntryPrice']
+            exit_time = trade['ExitTime']
+            exit_price = trade['ExitPrice']
+            qty = trade['Quantity']
+            if qty > 0:
+                ax1.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
+                             arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+                ax1.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
+                             arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+            else:
+                ax1.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
+                             arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+                ax1.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
+                             arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
 
     ax1.legend()
     ax2.legend()
     plt.tight_layout()
     st.pyplot(fig)
+
+    
 ChartOrder_RSI(KBar_df, OrderRecord.GetTradeRecord())       # RSI策略
 
+# ✅ ChartOrder_Bollinger()：與 ChartOrder_RSI() 相同風格，防錯設計
+
 def ChartOrder_Bollinger(df, trade_record):
+    if len(trade_record) == 0:
+        st.write('⚠️ 沒有任何交易紀錄，無法繪圖')
+        return
+
     fig, ax = plt.subplots(figsize=(15, 6))
     ax.plot(df['time'], df['close'], label='收盤價', color='black')
     ax.plot(df['time'], df['Upper_Band'], label='布林上軌', color='red', linestyle='--')
@@ -760,36 +772,45 @@ def ChartOrder_Bollinger(df, trade_record):
     ax.grid(True)
 
     for trade in trade_record:
-        entry_time = trade['EntryTime']
-        entry_price = trade['EntryPrice']
-        exit_time = trade['ExitTime']
-        exit_price = trade['ExitPrice']
-        qty = trade['Quantity']
-        if qty > 0:
-            ax.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
-                        arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
-            ax.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
-                        arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+        if isinstance(trade, dict) and all(k in trade for k in ['EntryTime', 'EntryPrice', 'ExitTime', 'ExitPrice', 'Quantity']):
+            entry_time = trade['EntryTime']
+            entry_price = trade['EntryPrice']
+            exit_time = trade['ExitTime']
+            exit_price = trade['ExitPrice']
+            qty = trade['Quantity']
+            if qty > 0:
+                ax.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
+                            arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+                ax.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
+                            arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+            else:
+                ax.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
+                            arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+                ax.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
+                            arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
         else:
-            ax.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
-                        arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
-            ax.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
-                        arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+            pass
 
     ax.legend()
+    plt.tight_layout()
     st.pyplot(fig)
+
 ChartOrder_Bollinger(KBar_df, OrderRecord.GetTradeRecord()) # BBAND策略
 
+# ✅ ChartOrder_MACD()：與 RSI/布林通道一致的圖形風格與錯誤處理
+
 def ChartOrder_MACD(df, trade_record):
+    if len(trade_record) == 0:
+        st.write('⚠️ 沒有任何交易紀錄，無法繪圖')
+        return
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), sharex=True)
 
-    # 主圖：價格線
     ax1.plot(df['time'], df['close'], label='收盤價', color='black')
     ax1.set_title('MACD 策略 K 線圖與下單點位')
     ax1.set_ylabel('價格')
     ax1.grid(True)
 
-    # MACD 圖
     ax2.plot(df['time'], df['MACD'], label='MACD', color='blue')
     ax2.plot(df['time'], df['Signal_Line'], label='Signal Line', color='orange')
     ax2.axhline(0, color='gray', linestyle='--')
@@ -798,27 +819,34 @@ def ChartOrder_MACD(df, trade_record):
     ax2.grid(True)
 
     for trade in trade_record:
-        entry_time = trade['EntryTime']
-        entry_price = trade['EntryPrice']
-        exit_time = trade['ExitTime']
-        exit_price = trade['ExitPrice']
-        qty = trade['Quantity']
-        if qty > 0:
-            ax1.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
-                         arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
-            ax1.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
-                         arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+        if isinstance(trade, dict) and all(k in trade for k in ['EntryTime', 'EntryPrice', 'ExitTime', 'ExitPrice', 'Quantity']):
+            entry_time = trade['EntryTime']
+            entry_price = trade['EntryPrice']
+            exit_time = trade['ExitTime']
+            exit_price = trade['ExitPrice']
+            qty = trade['Quantity']
+            if qty > 0:
+                ax1.annotate('Buy', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 0.98),
+                             arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+                ax1.annotate('Sell', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 1.02),
+                             arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+            else:
+                ax1.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
+                             arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
+                ax1.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
+                             arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
         else:
-            ax1.annotate('Sell', xy=(entry_time, entry_price), xytext=(entry_time, entry_price * 1.02),
-                         arrowprops=dict(facecolor='red', arrowstyle='->'), color='red')
-            ax1.annotate('Buy', xy=(exit_time, exit_price), xytext=(exit_time, exit_price * 0.98),
-                         arrowprops=dict(facecolor='green', arrowstyle='->'), color='green')
+            pass
 
     ax1.legend()
     ax2.legend()
     plt.tight_layout()
     st.pyplot(fig)
+
 ChartOrder_MACD(KBar_df, OrderRecord.GetTradeRecord())      # MACD策略
+
+print(OrderRecord.GetTradeRecord())  # 🔍 印出交易紀錄結構供排錯
+ChartOrder_MACD(KBar_df, OrderRecord.GetTradeRecord())  # MACD策略
 
 ##### 繪製K線圖加上MA以及下單點位
 # @st.cache_data(ttl=3600, show_spinner="正在加載資料...")  ## Add the caching decorator
@@ -908,8 +936,8 @@ ChartOrder_MACD(KBar_df, OrderRecord.GetTradeRecord())      # MACD策略
 
 #%%
 ###### 計算績效:
-# OrderRecord.GetTradeRecord()          ## 交易紀錄清單
-# OrderRecord.GetProfit()               ## 利潤清單
+#OrderRecord.GetTradeRecord()          ## 交易紀錄清單
+#OrderRecord.GetProfit()               ## 利潤清單
 
 #%%
 ##### 定義計算績效函數:
@@ -1043,22 +1071,38 @@ else:
 # ax2 = plt.subplot(2,1,2)
 
 
-
 #%%
 ##### 畫累計盈虧圖:
-if choice == choices[0] :     ##'華碩: 2023.4.17 至 2025.4.16':
-    OrderRecord.GeneratorProfitChart(choice='stock',StrategyName='MA')
-if choice == choices[1] :                 ##'元大台灣50正2: 2023.4.17 至 2025.4.17':
-    OrderRecord.GeneratorProfitChart(choice='stock',StrategyName='MA')
-if choice == choices[2] :                            ##'聯電期貨: 2023.4.17 至 2024.4.16':
-    OrderRecord.GeneratorProfitChart(choice='future1',StrategyName='MA')
+#if choice == choices[0] :     ##'華碩: 2023.4.17 至 2025.4.16':
+#    OrderRecord.GeneratorProfitChart(choice='stock',StrategyName='MA')
+#if choice == choices[1] :                 ##'元大台灣50正2: 2023.4.17 至 2025.4.17':
+#    OrderRecord.GeneratorProfitChart(choice='stock',StrategyName='MA')
+#if choice == choices[2] :                            ##'聯電期貨: 2023.4.17 至 2024.4.16':
+#    OrderRecord.GeneratorProfitChart(choice='future1',StrategyName='MA')
+import matplotlib
+matplotlib.rcParams['font.sans-serif'] = ['Microsoft JhengHei']  # ✅ 繁中支援
+matplotlib.rcParams['axes.unicode_minus'] = False
+
+# 畫累計盈虧圖
+if len(OrderRecord.Profit) > 0:
+    TotalProfit = [0]
+    for p in OrderRecord.Profit:
+        TotalProfit.append(TotalProfit[-1] + p)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(TotalProfit[1:], marker='o', color='green')
+    plt.title('累計盈虧(千元)')
+    plt.xlabel('交易次數')
+    plt.ylabel('累計盈虧(千元)')
+    plt.grid(True)
+    st.pyplot(plt)
 
     
 
-# matplotlib.rcParams['font.family'] = 'Noto Sans CJK JP'
-# matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+#matplotlib.rcParams['font.family'] = 'Noto Sans CJK JP'
+#matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
-# plt.figure()
+#plt.figure()
 
 # #### 計算累計績效
 # TotalProfit=[0]
@@ -1079,9 +1123,9 @@ if choice == choices[2] :                            ##'聯電期貨: 2023.4.17 
 # # ax.set_title('累計盈虧')
 # # ax.set_xlabel('交易編號')
 # # ax.set_ylabel('累計盈虧(元/每股)')
-# plt.title('累計盈虧(元)')
-# plt.xlabel('交易編號')
-# plt.ylabel('累計盈虧(元)')
+#plt.title('累計盈虧(元)')
+#plt.xlabel('交易編號')
+#plt.ylabel('累計盈虧(元)')
 # # if choice == '台積電: 2022.1.1 至 2024.4.9':
 # #     plt.ylabel('累計盈虧(元/每股)')
 # # if choice == '大台指2024.12到期: 2024.1 至 2024.4.9':
@@ -1106,8 +1150,23 @@ if choice == choices[2] :                            ##'聯電期貨: 2023.4.17 
 
 
 #%%
+
 ##### 畫累計投資報酬率圖:
-OrderRecord.GeneratorProfit_rateChart(StrategyName='MA')
+#OrderRecord.GeneratorProfit_rateChart(StrategyName='MA')
+# 畫累計投資報酬率圖
+if len(OrderRecord.Profit_rate) > 0:
+    TotalProfitRate = [0]
+    for r in OrderRecord.Profit_rate:
+        TotalProfitRate.append(TotalProfitRate[-1] + r)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(TotalProfitRate[1:], marker='o', color='blue')
+    plt.title('累計投資報酬率')
+    plt.xlabel('交易次數')
+    plt.ylabel('累計投資報酬率')
+    plt.grid(True)
+    st.pyplot(plt)
+
 # matplotlib.rcParams['font.family'] = 'Noto Sans CJK JP'
 # matplotlib.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
@@ -1129,9 +1188,9 @@ OrderRecord.GeneratorProfit_rateChart(StrategyName='MA')
 
 
 # ####定義標頭
-# plt.title('累計投資報酬率')
-# plt.xlabel('交易編號')
-# plt.ylabel('累計投資報酬率')
+#plt.title('累計投資報酬率')
+#plt.xlabel('交易編號')
+#plt.ylabel('累計投資報酬率')
 # # if choice == '台積電: 2022.1.1 至 2024.4.9':
 # #     plt.ylabel('累計投資報酬率')
 # # if choice == '大台指2024.12到期: 2024.1 至 2024.4.9':
