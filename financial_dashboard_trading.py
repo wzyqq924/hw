@@ -20,8 +20,9 @@ from order_streamlit import Record
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.rcParams['font.family'] = 'Noto Sans CJK TC'  # 或 'WenQuanYi Zen Hei'
+matplotlib.rcParams['font.sans-serif'] = ['Microsoft JhengHei']  # 或 ['SimHei'], ['Taipei Sans TC Beta']
 matplotlib.rcParams['axes.unicode_minus'] = False
+
 
 
 #%%
