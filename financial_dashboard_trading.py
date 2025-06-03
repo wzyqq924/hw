@@ -18,9 +18,11 @@ import streamlit as st
 import streamlit.components.v1 as stc 
 from order_streamlit import Record
 import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.rcParams['font.sans-serif'] = ['Microsoft JhengHei']  # 或 ['SimHei'], ['Taipei Sans TC Beta']
+matplotlib.rcParams['font.family'] = 'Noto Sans CJK TC'  # 或 'WenQuanYi Zen Hei'
 matplotlib.rcParams['axes.unicode_minus'] = False
+
 
 #%%
 ####### (1) 開始設定 #######
